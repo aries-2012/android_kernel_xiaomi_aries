@@ -1149,27 +1149,28 @@ void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd)
 	struct vsycn_ctrl *vctrl;
 	struct mdp4_overlay_pipe *pipe;
 	unsigned long flags;
+	long long tick;
 
+	mutex_lock(&mfd->dma->ov_mutex);
 	vctrl = &vsync_ctrl_db[cndx];
 
-	atomic_inc(&in_drawing);
 	if (!mfd->panel_power_on) {
-		atomic_dec(&in_drawing);
+		mutex_unlock(&mfd->dma->ov_mutex);
 		return;
 	}
 
 	pipe = vctrl->base_pipe;
 	if (pipe == NULL) {
 		pr_err("%s: NO base pipe\n", __func__);
-		atomic_dec(&in_drawing);
+		mutex_unlock(&mfd->dma->ov_mutex);
 		return;
 	}
 
 	mutex_lock(&vctrl->update_lock);
 	if (!vctrl->clk_enabled) {
-		atomic_dec(&in_drawing);
 		pr_err("%s: mdp clocks disabled\n", __func__);
 		mutex_unlock(&vctrl->update_lock);
+		mutex_unlock(&mfd->dma->ov_mutex);
 		return;
 
 	}
@@ -1192,9 +1193,9 @@ void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd)
 	}
 
 	mdp4_overlay_mdp_perf_upd(mfd, 1);
-
-	mutex_lock(&mfd->dma->ov_mutex);
 	mdp4_dsi_cmd_pipe_commit(cndx, 0);
+	mdp4_dsi_cmd_wait4vsync(cndx, &tick);
+	mdp4_overlay_mdp_perf_upd(mfd, 0);
 	mutex_unlock(&mfd->dma->ov_mutex);
-	atomic_dec(&in_drawing);
+
 }
