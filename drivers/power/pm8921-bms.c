@@ -2787,6 +2787,26 @@ static int64_t read_battery_id(struct pm8921_bms_chip *chip)
 #define PALLADIUM_ID_MAX	0x7F5A
 #define DESAY_5200_ID_MIN	0x7F7F
 #define DESAY_5200_ID_MAX	0x802F
+/* For 8064 MTP platform */
+#define SONY_1900_ID_MIN	0x6100
+#define SONY_1900_ID_MAX	0x6A00
+#define SAMSUNG_1900_ID_MIN	0x7000
+#define SAMSUNG_1900_ID_MAX	0x7500
+#define LG_1900_ID_MIN		0x7600
+#define LG_1900_ID_MAX		0x7A00
+#define SONY_3000_ID_MIN	0x8100
+#define SONY_3000_ID_MAX	0x8400
+#define SAMSUNG_3000_ID_MIN	0x8A00
+#define SAMSUNG_3000_ID_MAX	0x8D00
+#define LG_3000_ID_MIN		0x9100
+#define LG_3000_ID_MAX		0x9400
+/* For 8960 CDP platform */
+#define SAMSUNG_2000_ID_MIN	0x1000
+#define SAMSUNG_2000_ID_MAX	0x1000
+#define SONY_2000_ID_MIN	0x1500
+#define SONY_2000_ID_MAX	0x1500
+#define LG_2000_ID_MIN		0x2000
+#define LG_2000_ID_MAX		0x2000
 static int set_battery_data(struct pm8921_bms_chip *chip)
 {
 	int64_t battery_id;
@@ -2799,7 +2819,8 @@ static int set_battery_data(struct pm8921_bms_chip *chip)
 	battery_id = read_battery_id(chip);
 	if (battery_id < 0) {
 		pr_err("cannot read battery id err = %lld\n", battery_id);
-		return battery_id;
+		/* Ignore the error temporarily */
+		goto samsung;
 	}
 
 	if (is_between(PALLADIUM_ID_MIN, PALLADIUM_ID_MAX, battery_id)) {
@@ -2807,10 +2828,38 @@ static int set_battery_data(struct pm8921_bms_chip *chip)
 	} else if (is_between(DESAY_5200_ID_MIN, DESAY_5200_ID_MAX,
 				battery_id)) {
 		goto desay;
+	} else if (is_between(SONY_1900_ID_MIN, SONY_1900_ID_MAX,
+				battery_id)) {
+		goto sony;
+	} else if (is_between(SAMSUNG_1900_ID_MIN, SAMSUNG_1900_ID_MAX,
+				battery_id)) {
+		goto samsung;
+	} else if (is_between(LG_1900_ID_MIN, LG_1900_ID_MAX,
+				battery_id)) {
+		goto lg;
+	} else if (is_between(SONY_3000_ID_MIN, SONY_3000_ID_MAX,
+				battery_id)) {
+		goto sony_3000;
+	} else if (is_between(LG_3000_ID_MIN, LG_3000_ID_MAX,
+				battery_id)) {
+		goto lg_3000;
+	} else if (is_between(SAMSUNG_3000_ID_MIN, SAMSUNG_3000_ID_MAX,
+				battery_id)) {
+		goto samsung_3000;
+	} else if (is_between(SAMSUNG_2000_ID_MIN,
+			SAMSUNG_2000_ID_MAX, battery_id)) {
+		goto samsung_2000;
+	} else if (is_between(SONY_2000_ID_MIN,
+			SONY_2000_ID_MAX, battery_id)) {
+		/* test only */
+		goto samsung_2000;
+	} else if (is_between(LG_2000_ID_MIN,
+			LG_2000_ID_MAX, battery_id)) {
+		goto lg_2000;
 	} else {
-		pr_warn("invalid battid, palladium 1500 assumed batt_id %llx\n",
+		pr_warn("invalid battid, Samsung 1900 assumed batt_id %llx\n",
 				battery_id);
-		goto palladium;
+		goto samsung;
 	}
 
 palladium:
@@ -2832,6 +2881,86 @@ desay:
 		chip->rbatt_sf_lut = desay_5200_data.rbatt_sf_lut;
 		chip->default_rbatt_mohm = desay_5200_data.default_rbatt_mohm;
 		chip->delta_rbatt_mohm = desay_5200_data.delta_rbatt_mohm;
+		return 0;
+sony:
+		printk("%s sony battery IC used\n", __func__);
+		chip->fcc = sony_1900_data.fcc;
+		chip->fcc_temp_lut = sony_1900_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = sony_1900_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = sony_1900_data.pc_sf_lut;
+		chip->rbatt_sf_lut = sony_1900_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = sony_1900_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = sony_1900_data.delta_rbatt_mohm;
+		return 0;
+lg:
+		printk("%s lg battery IC used\n", __func__);
+		chip->fcc = lg_1900_data.fcc;
+		chip->fcc_temp_lut = lg_1900_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = lg_1900_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = lg_1900_data.pc_sf_lut;
+		chip->rbatt_sf_lut = lg_1900_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = lg_1900_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = lg_1900_data.delta_rbatt_mohm;
+		return 0;
+samsung:
+		printk("%s samsung battery IC used\n", __func__);
+		chip->fcc = samsung_1900_data.fcc;
+		chip->fcc_temp_lut = samsung_1900_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = samsung_1900_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = samsung_1900_data.pc_sf_lut;
+		chip->rbatt_sf_lut = samsung_1900_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = samsung_1900_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = samsung_1900_data.delta_rbatt_mohm;
+		return 0;
+samsung_2000:
+		printk("%s samsung battery 2000 IC used\n", __func__);
+		chip->fcc = samsung_2000_data.fcc;
+		chip->fcc_temp_lut = samsung_2000_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = samsung_2000_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = samsung_2000_data.pc_sf_lut;
+		chip->rbatt_sf_lut = samsung_2000_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = samsung_2000_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = samsung_2000_data.delta_rbatt_mohm;
+		return 0;
+lg_2000:
+		printk("%s LG battery 2000 IC used\n", __func__);
+		chip->fcc = lg_2000_data.fcc;
+		chip->fcc_temp_lut = lg_2000_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = lg_2000_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = lg_2000_data.pc_sf_lut;
+		chip->rbatt_sf_lut = lg_2000_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = lg_2000_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = lg_2000_data.delta_rbatt_mohm;
+		return 0;
+sony_3000:
+		printk("%s sony 3000 battery IC used\n", __func__);
+		chip->fcc = sony_3000_data.fcc;
+		chip->fcc_temp_lut = sony_3000_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = sony_3000_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = sony_3000_data.pc_sf_lut;
+		chip->rbatt_sf_lut = sony_3000_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = sony_3000_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = sony_3000_data.delta_rbatt_mohm;
+		return 0;
+lg_3000:
+		printk("%s lg 3000 battery IC used\n", __func__);
+		chip->fcc = lg_3000_data.fcc;
+		chip->fcc_temp_lut = lg_3000_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = lg_3000_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = lg_3000_data.pc_sf_lut;
+		chip->rbatt_sf_lut = lg_3000_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = lg_3000_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = lg_3000_data.delta_rbatt_mohm;
+		return 0;
+samsung_3000:
+		printk("%s samsung 3000 battery IC used\n", __func__);
+		chip->fcc = samsung_3000_data.fcc;
+		chip->fcc_temp_lut = samsung_3000_data.fcc_temp_lut;
+		chip->pc_temp_ocv_lut = samsung_3000_data.pc_temp_ocv_lut;
+		chip->pc_sf_lut = samsung_3000_data.pc_sf_lut;
+		chip->rbatt_sf_lut = samsung_3000_data.rbatt_sf_lut;
+		chip->default_rbatt_mohm = samsung_3000_data.default_rbatt_mohm;
+		chip->delta_rbatt_mohm = samsung_3000_data.delta_rbatt_mohm;
 		return 0;
 }
 
@@ -3190,6 +3319,15 @@ static int __devinit pm8921_bms_probe(struct platform_device *pdev)
 	chip->soc_at_cv = -EINVAL;
 
 	chip->ignore_shutdown_soc = pdata->ignore_shutdown_soc;
+
+	chip->batt_temp_channel = pdata->bms_cdata.batt_temp_channel;
+	chip->vbat_channel = pdata->bms_cdata.vbat_channel;
+	chip->ref625mv_channel = pdata->bms_cdata.ref625mv_channel;
+	chip->ref1p25v_channel = pdata->bms_cdata.ref1p25v_channel;
+	chip->batt_id_channel = pdata->bms_cdata.batt_id_channel;
+	chip->revision = pm8xxx_get_revision(chip->dev->parent);
+	chip->enable_fcc_learning = pdata->enable_fcc_learning;
+
 	rc = set_battery_data(chip);
 	if (rc) {
 		pr_err("%s bad battery data %d\n", __func__, rc);
@@ -3205,14 +3343,6 @@ static int __devinit pm8921_bms_probe(struct platform_device *pdev)
 	/* set defaults in the battery data */
 	if (chip->default_rbatt_mohm <= 0)
 		chip->default_rbatt_mohm = DEFAULT_RBATT_MOHMS;
-
-	chip->batt_temp_channel = pdata->bms_cdata.batt_temp_channel;
-	chip->vbat_channel = pdata->bms_cdata.vbat_channel;
-	chip->ref625mv_channel = pdata->bms_cdata.ref625mv_channel;
-	chip->ref1p25v_channel = pdata->bms_cdata.ref1p25v_channel;
-	chip->batt_id_channel = pdata->bms_cdata.batt_id_channel;
-	chip->revision = pm8xxx_get_revision(chip->dev->parent);
-	chip->enable_fcc_learning = pdata->enable_fcc_learning;
 
 	mutex_init(&chip->calib_mutex);
 	INIT_WORK(&chip->calib_hkadc_work, calibrate_hkadc_work);
